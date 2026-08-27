@@ -70,6 +70,17 @@ function updateTextColor() {
 	document.getElementById("song_info").style.setProperty("--text-color", textColor);
 }
 
+function updateTextSize(element, maxSize = 32, minSize = 8) {
+	let size = maxSize;
+
+	element.style.fontSize = `${size}px`;
+
+	while (element.scrollWidth > element.clientWidth && size > minSize) {
+		size--;
+		element.style.fontSize = `${size}px`;
+	}
+}
+
 
 function getDeviceId(){
 	return "1234-5678-1234-5678";
@@ -91,7 +102,7 @@ class Jellyfin {
 		this.#API_KEY = API_KEY;
 		
 		const uuid = getDeviceId();
-		this.#WEBSOCKET = new WebSocket(`${ws}://${SERVER_URL}/socket?api_key=${encodeURIComponent(API_KEY)}&deviceId=${encodeURIComponent(uuid)}`);
+		this.#WEBSOCKET = new WebSocket(`${ws}://${this.#SERVER_URL}/socket?api_key=${encodeURIComponent(this.#API_KEY)}&deviceId=${encodeURIComponent(uuid)}`);
 			
 		this.#WEBSOCKET.onopen = () => this.#onOpen();
 		this.#WEBSOCKET.onmessage = (message) => this.#onMessage(message);
@@ -111,6 +122,8 @@ class Jellyfin {
 	 * @param {NowPlaying} nowPlaying
 	 */
 	#updatePlayer(nowPlaying){
+		if(this.#SHOWN_SONG === nowPlaying.id) return; // Same song isn't going to change anything
+		
 		const playerBG = document.getElementById("player-bg");
 		const albumArt = document.getElementById("album_art");
 		const songName = document.getElementById("song_name");
@@ -118,13 +131,14 @@ class Jellyfin {
 		
 		albumArt.src = nowPlaying.imageUrl;
 		playerBG.style.backgroundImage = `url(${nowPlaying.imageUrl})`
-		// updateTextColor();
 		
 		songName.innerText = nowPlaying.name;
+		updateTextSize(songName, 32, 8);
+		
 		let artists = nowPlaying.artists.length > 1 ? nowPlaying.artists.slice(0, -1).join(", ") + " & " + nowPlaying.artists.at(-1) : nowPlaying.artists[0];
 		if(!artists) artists = "unknown";
-		
 		artistName.innerText = `by ${artists}`;
+		updateTextSize(artistName, 20, 8);
 		
 		if(this.#SHOWN_SONG !== nowPlaying.id){
 			if(this.#SHOW_TIMER) clearTimeout(this.#SHOW_TIMER);
@@ -194,7 +208,12 @@ class Jellyfin {
 	
 	#onClose(event){
 		console.warn("Socket Closed:", event)
-		new Jellyfin(this.#SERVER_URL, this.#API_KEY, this.#USER_ID);
+		this.#WEBSOCKET = null;
+		
+		setTimeout(() => { // Reconnect after 5 seconds
+			const uuid = getDeviceId();
+			this.#WEBSOCKET = new WebSocket(`${ws}://${this.#SERVER_URL}/socket?api_key=${encodeURIComponent(this.#API_KEY)}&deviceId=${encodeURIComponent(uuid)}`);
+		}, 5000)
 	}
 	
 	#onError(error){

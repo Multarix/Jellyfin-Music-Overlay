@@ -182,7 +182,7 @@ class Jellyfin {
 	async #getItemImageUrl(itemId) {
 		if(this.#imageCache.has(itemId)) return this.#imageCache.get(itemId);
 		
-		this.#imageCache.set(itemId, "/unknown.png");
+		this.#imageCache.set(itemId, "./unknown.png");
 		try {
 			const imageURL = `${http}://${this.#SERVER_URL}/Items/${itemId}/Images/Primary?maxWidth=100&maxHeight=100`;
 			const res = await fetch(imageURL, { method: "HEAD" });

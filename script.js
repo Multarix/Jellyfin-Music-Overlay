@@ -160,6 +160,10 @@ class Jellyfin {
 			!sesh.PlayState?.IsPaused
 		);
 		
+		/** @type {string} songName */
+		let songName = session.NowPlayingItem.Name;
+		if(songName.length > 25) songName = songName.slice(0, 20).trim() + "...";
+		
 		if(!session) return this.#showHidePlayer(false);
 		
 		const artists = session.NowPlayingItem.Artists || ["Unknown Artist"];
@@ -167,7 +171,7 @@ class Jellyfin {
 		
 		const nowPlaying = {
 			id: session.NowPlayingItem.Id,
-			name: session.NowPlayingItem.Name,
+			name: songName,
 			artists: artists,
 			runTimeTicks: session.NowPlayingItem.RunTimeTicks,
 			positionTicks: session.PlayState.PositionTicks,

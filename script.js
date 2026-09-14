@@ -221,6 +221,10 @@ class Jellyfin {
 		setTimeout(() => { // Reconnect after 5 seconds
 			const uuid = getDeviceId();
 			this.#WEBSOCKET = new WebSocket(`${ws}://${this.#SERVER_URL}/socket?api_key=${encodeURIComponent(this.#API_KEY)}&deviceId=${encodeURIComponent(uuid)}`);
+			this.#WEBSOCKET.onopen = () => this.#onOpen();
+			this.#WEBSOCKET.onmessage = (message) => this.#onMessage(message);
+			this.#WEBSOCKET.onclose = (event) => this.#onClose(event);
+			this.#WEBSOCKET.onerror = (error) => this.#onError(error);
 		}, 5000)
 	}
 	

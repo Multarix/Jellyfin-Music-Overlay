@@ -167,7 +167,7 @@ class Jellyfin {
 		if(!session) return this.#showHidePlayer(false);
 		
 		const artists = session.NowPlayingItem.Artists || ["Unknown Artist"];
-		const image = await this.#getItemImageUrl(session.NowPlayingItem.Id);
+		const image = await this.#getItemImageUrl(session.NowPlayingItem.Id, session.NowPlayingItem.AlbumId);
 		
 		const nowPlaying = {
 			id: session.NowPlayingItem.Id,
@@ -183,20 +183,24 @@ class Jellyfin {
 
 	// Returns the "primary" image for a given item ID. If the image is not found, it returns "unknown_image"
 	// Also caches the image URL for future requests
-	async #getItemImageUrl(itemId) {
+	async #getItemImageUrl(itemId, albumId) {
 		if(this.#imageCache.has(itemId)) return this.#imageCache.get(itemId);
 		
-		this.#imageCache.set(itemId, "./unknown.png");
+		let imageURL = "./unknown.png";
+		this.#imageCache.set(itemId, imageURL);
+		
 		try {
-			const imageURL = `${http}://${this.#SERVER_URL}/Items/${itemId}/Images/Primary?maxWidth=100&maxHeight=100`;
-			const res = await fetch(imageURL, { method: "HEAD" });
-			if(res.ok){
-				this.#imageCache.set(itemId, imageURL);
-			}
+			const itemImageURL = `${http}://${this.#SERVER_URL}/Items/${itemId}/Images/Primary?maxWidth=100&maxHeight=100`;
+			const itemRes = await fetch(itemImageURL, { method: "HEAD" });
+			
+			const albumImageURL = `${http}://${this.#SERVER_URL}/Items/${albumId}/Images/Primary?maxWidth=100&maxHeight=100`;
+			const albumRes = await fetch(albumImageURL, { method: "HEAD" });
+			
+			imageURL = itemRes.ok ? itemImageURL : (albumRes.ok ? albumImageURL : imageURL);
+			this.#imageCache.set(itemId, imageURL);
 		} catch {
 			null;
 		}
-		
 		
 		return this.#imageCache.get(itemId);
 	}

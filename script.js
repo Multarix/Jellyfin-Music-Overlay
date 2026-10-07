@@ -95,20 +95,37 @@ class Jellyfin {
 	#SHOWN_SONG = "0";
 	#SHOW_TIMER
 	#API_KEY
+	#TIMER
 	
 	constructor(SERVER_URL, API_KEY, USER_ID) {
 		this.#SERVER_URL = SERVER_URL;
 		this.#USER_ID = USER_ID;
 		this.#API_KEY = API_KEY;
 		
-		const uuid = getDeviceId();
-		this.#WEBSOCKET = new WebSocket(`${ws}://${this.#SERVER_URL}/socket?api_key=${encodeURIComponent(this.#API_KEY)}&deviceId=${encodeURIComponent(uuid)}`);
+		// const uuid = getDeviceId();
+		
+		// this.#WEBSOCKET = new WebSocket(`${ws}://${this.#SERVER_URL}/socket?api_key=${encodeURIComponent(this.#API_KEY)}&deviceId=${encodeURIComponent(uuid)}`);
+		// this.#WEBSOCKET.onopen = () => this.#onOpen();
+		// this.#WEBSOCKET.onmessage = (message) => this.#onMessage(message);
+		// this.#WEBSOCKET.onclose = (event) => this.#onClose(event);
+		// this.#WEBSOCKET.onerror = (error) => this.#onError(error);
+		
+		this.#TIMER = setInterval(async () => {
+			const res = await fetch(`${http}://${this.#SERVER_URL}/Sessions`, {
+				headers: {
+					"Authorization": `MediaBrowser Token="${jellyfinToken}"`
+				}
+			});
 			
-		this.#WEBSOCKET.onopen = () => this.#onOpen();
-		this.#WEBSOCKET.onmessage = (message) => this.#onMessage(message);
-		this.#WEBSOCKET.onclose = (event) => this.#onClose(event);
-		this.#WEBSOCKET.onerror = (error) => this.#onError(error);
+			if(!res.ok) return;
+			
+			const json = await res.json();
+			this.#onMessage(json);
+		}, 3000)
+			
 	}
+	
+	
 	
 	
 	// Show if true, hide if false
@@ -149,12 +166,12 @@ class Jellyfin {
 		}
 	}
 	
-	async #onMessage(message){
-		const json = JSON.parse(message.data);
-		if(json.MessageType !== "Sessions") return;
+	async #onMessage(json){
+		// const json = JSON.parse(message.data);
+		// if(json.MessageType !== "Sessions") return;
 			
 
-		const session = json.Data.find(sesh =>
+		const session = json.find(sesh =>
 			sesh.UserId === this.#USER_ID &&
 			sesh.NowPlayingItem?.Type === "Audio" &&
 			!sesh.PlayState?.IsPaused
